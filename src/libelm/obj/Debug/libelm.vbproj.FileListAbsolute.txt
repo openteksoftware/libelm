@@ -1,0 +1,10 @@
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\bin\Debug\libelm.dll
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\bin\Debug\libelm.pdb
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\bin\Debug\libelm.xml
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\obj\Debug\ResolveAssemblyReference.cache
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\obj\Debug\libelm.Resources.resources
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\obj\Debug\GenerateResource.read.1.tlog
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\obj\Debug\GenerateResource.write.1.tlog
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\obj\Debug\libelm.dll
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\obj\Debug\libelm.xml
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\libelm\obj\Debug\libelm.pdb

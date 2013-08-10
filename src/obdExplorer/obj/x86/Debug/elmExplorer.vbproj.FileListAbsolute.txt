@@ -1,0 +1,11 @@
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\bin\Debug\obdExplorer.exe
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\bin\Debug\obdExplorer.pdb
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\bin\Debug\obdExplorer.xml
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\ResolveAssemblyReference.cache
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\obdExplorer.frmMain.resources
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\obdExplorer.Resources.resources
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\GenerateResource.read.1.tlog
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\GenerateResource.write.1.tlog
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\obdExplorer.exe
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\obdExplorer.xml
+C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\obdExplorer.pdb
