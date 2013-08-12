@@ -9,3 +9,6 @@ C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Re
 C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Release\obdExplorer.exe
 C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Release\obdExplorer.xml
 C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\Release\obdExplorer.pdb
+C:\Users\Ian\Documents\Visual Studio 2010\Projects\libelm\obdExplorer\bin\Release\libelm.dll
+C:\Users\Ian\Documents\Visual Studio 2010\Projects\libelm\obdExplorer\bin\Release\libelm.pdb
+C:\Users\Ian\Documents\Visual Studio 2010\Projects\libelm\obdExplorer\bin\Release\libelm.xml
