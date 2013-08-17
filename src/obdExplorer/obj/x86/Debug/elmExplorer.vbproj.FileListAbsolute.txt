@@ -12,3 +12,4 @@ C:\Users\Ian\documents\visual studio 2010\Projects\libelm\obdExplorer\obj\x86\De
 C:\Users\Ian\Documents\Visual Studio 2010\Projects\libelm\obdExplorer\bin\Debug\libelm.dll
 C:\Users\Ian\Documents\Visual Studio 2010\Projects\libelm\obdExplorer\bin\Debug\libelm.pdb
 C:\Users\Ian\Documents\Visual Studio 2010\Projects\libelm\obdExplorer\bin\Debug\libelm.xml
+C:\Users\Ian\Documents\Visual Studio 2010\Projects\libelm\obdExplorer\obj\x86\Debug\obdExplorer.frmCANListener.resources

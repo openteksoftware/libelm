@@ -40,7 +40,10 @@ Partial Class frmMain
         Me.TabPage1 = New System.Windows.Forms.TabPage()
         Me.TabControl3 = New System.Windows.Forms.TabControl()
         Me.TabPage8 = New System.Windows.Forms.TabPage()
+        Me.Label72 = New System.Windows.Forms.Label()
+        Me.Label71 = New System.Windows.Forms.Label()
         Me.TabPage9 = New System.Windows.Forms.TabPage()
+        Me.Button4 = New System.Windows.Forms.Button()
         Me.TabPage13 = New System.Windows.Forms.TabPage()
         Me.Label16 = New System.Windows.Forms.Label()
         Me.Button3 = New System.Windows.Forms.Button()
@@ -97,6 +100,9 @@ Partial Class frmMain
         Me.Label1 = New System.Windows.Forms.Label()
         Me.ProgressBar1 = New System.Windows.Forms.ProgressBar()
         Me.TabPage11 = New System.Windows.Forms.TabPage()
+        Me.GroupBox39 = New System.Windows.Forms.GroupBox()
+        Me.Label70 = New System.Windows.Forms.Label()
+        Me.ProgressBar45 = New System.Windows.Forms.ProgressBar()
         Me.GroupBox38 = New System.Windows.Forms.GroupBox()
         Me.Label69 = New System.Windows.Forms.Label()
         Me.ProgressBar44 = New System.Windows.Forms.ProgressBar()
@@ -220,6 +226,8 @@ Partial Class frmMain
         Me.TabControl1.SuspendLayout()
         Me.TabPage1.SuspendLayout()
         Me.TabControl3.SuspendLayout()
+        Me.TabPage8.SuspendLayout()
+        Me.TabPage9.SuspendLayout()
         Me.TabPage13.SuspendLayout()
         Me.TabPage2.SuspendLayout()
         Me.TabControl4.SuspendLayout()
@@ -240,6 +248,7 @@ Partial Class frmMain
         Me.GroupBox2.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
         Me.TabPage11.SuspendLayout()
+        Me.GroupBox39.SuspendLayout()
         Me.GroupBox38.SuspendLayout()
         Me.GroupBox37.SuspendLayout()
         Me.GroupBox36.SuspendLayout()
@@ -329,7 +338,7 @@ Partial Class frmMain
         '
         'ToolStripComboBox1
         '
-        Me.ToolStripComboBox1.Items.AddRange(New Object() {"COM4"})
+        Me.ToolStripComboBox1.Items.AddRange(New Object() {"COM3", "COM4"})
         Me.ToolStripComboBox1.Name = "ToolStripComboBox1"
         Me.ToolStripComboBox1.Size = New System.Drawing.Size(121, 25)
         '
@@ -393,6 +402,8 @@ Partial Class frmMain
         '
         'TabPage8
         '
+        Me.TabPage8.Controls.Add(Me.Label72)
+        Me.TabPage8.Controls.Add(Me.Label71)
         Me.TabPage8.Location = New System.Drawing.Point(4, 22)
         Me.TabPage8.Name = "TabPage8"
         Me.TabPage8.Padding = New System.Windows.Forms.Padding(3)
@@ -401,8 +412,27 @@ Partial Class frmMain
         Me.TabPage8.Text = "Main"
         Me.TabPage8.UseVisualStyleBackColor = True
         '
+        'Label72
+        '
+        Me.Label72.AutoSize = True
+        Me.Label72.Location = New System.Drawing.Point(78, 12)
+        Me.Label72.Name = "Label72"
+        Me.Label72.Size = New System.Drawing.Size(16, 13)
+        Me.Label72.TabIndex = 1
+        Me.Label72.Text = "..."
+        '
+        'Label71
+        '
+        Me.Label71.AutoSize = True
+        Me.Label71.Location = New System.Drawing.Point(6, 12)
+        Me.Label71.Name = "Label71"
+        Me.Label71.Size = New System.Drawing.Size(66, 13)
+        Me.Label71.TabIndex = 0
+        Me.Label71.Text = "Vehicle VIN:"
+        '
         'TabPage9
         '
+        Me.TabPage9.Controls.Add(Me.Button4)
         Me.TabPage9.Location = New System.Drawing.Point(4, 22)
         Me.TabPage9.Name = "TabPage9"
         Me.TabPage9.Padding = New System.Windows.Forms.Padding(3)
@@ -410,6 +440,15 @@ Partial Class frmMain
         Me.TabPage9.TabIndex = 1
         Me.TabPage9.Text = "DTC's"
         Me.TabPage9.UseVisualStyleBackColor = True
+        '
+        'Button4
+        '
+        Me.Button4.Location = New System.Drawing.Point(6, 345)
+        Me.Button4.Name = "Button4"
+        Me.Button4.Size = New System.Drawing.Size(98, 23)
+        Me.Button4.TabIndex = 0
+        Me.Button4.Text = "Erase Code(s)"
+        Me.Button4.UseVisualStyleBackColor = True
         '
         'TabPage13
         '
@@ -626,7 +665,7 @@ Partial Class frmMain
         Me.GroupBox12.Size = New System.Drawing.Size(200, 67)
         Me.GroupBox12.TabIndex = 11
         Me.GroupBox12.TabStop = False
-        Me.GroupBox12.Text = "Commanded EVAP Purge"
+        Me.GroupBox12.Text = "Engine RPM"
         '
         'Label12
         '
@@ -643,6 +682,7 @@ Partial Class frmMain
         'ProgressBar12
         '
         Me.ProgressBar12.Location = New System.Drawing.Point(6, 19)
+        Me.ProgressBar12.Maximum = 6000
         Me.ProgressBar12.Name = "ProgressBar12"
         Me.ProgressBar12.Size = New System.Drawing.Size(188, 23)
         Me.ProgressBar12.TabIndex = 0
@@ -997,6 +1037,7 @@ Partial Class frmMain
         '
         'TabPage11
         '
+        Me.TabPage11.Controls.Add(Me.GroupBox39)
         Me.TabPage11.Controls.Add(Me.GroupBox38)
         Me.TabPage11.Controls.Add(Me.GroupBox37)
         Me.TabPage11.Controls.Add(Me.GroupBox36)
@@ -1017,6 +1058,35 @@ Partial Class frmMain
         Me.TabPage11.TabIndex = 1
         Me.TabPage11.Text = "Page 2"
         Me.TabPage11.UseVisualStyleBackColor = True
+        '
+        'GroupBox39
+        '
+        Me.GroupBox39.Controls.Add(Me.Label70)
+        Me.GroupBox39.Controls.Add(Me.ProgressBar45)
+        Me.GroupBox39.Location = New System.Drawing.Point(421, 225)
+        Me.GroupBox39.Name = "GroupBox39"
+        Me.GroupBox39.Size = New System.Drawing.Size(200, 67)
+        Me.GroupBox39.TabIndex = 14
+        Me.GroupBox39.TabStop = False
+        Me.GroupBox39.Text = "Commanded Evap Purge"
+        '
+        'Label70
+        '
+        Me.Label70.Anchor = CType((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.Label70.AutoSize = True
+        Me.Label70.Location = New System.Drawing.Point(3, 45)
+        Me.Label70.Name = "Label70"
+        Me.Label70.Size = New System.Drawing.Size(21, 13)
+        Me.Label70.TabIndex = 1
+        Me.Label70.Text = "0%"
+        Me.Label70.TextAlign = System.Drawing.ContentAlignment.MiddleRight
+        '
+        'ProgressBar45
+        '
+        Me.ProgressBar45.Location = New System.Drawing.Point(6, 19)
+        Me.ProgressBar45.Name = "ProgressBar45"
+        Me.ProgressBar45.Size = New System.Drawing.Size(188, 23)
+        Me.ProgressBar45.TabIndex = 0
         '
         'GroupBox38
         '
@@ -2193,7 +2263,7 @@ Partial Class frmMain
         Me.Controls.Add(Me.MenuStrip1)
         Me.MainMenuStrip = Me.MenuStrip1
         Me.Name = "frmMain"
-        Me.Text = "elmExplorer"
+        Me.Text = "elmExplorer (BETA)"
         Me.MenuStrip1.ResumeLayout(False)
         Me.MenuStrip1.PerformLayout()
         Me.ToolStrip1.ResumeLayout(False)
@@ -2201,6 +2271,9 @@ Partial Class frmMain
         Me.TabControl1.ResumeLayout(False)
         Me.TabPage1.ResumeLayout(False)
         Me.TabControl3.ResumeLayout(False)
+        Me.TabPage8.ResumeLayout(False)
+        Me.TabPage8.PerformLayout()
+        Me.TabPage9.ResumeLayout(False)
         Me.TabPage13.ResumeLayout(False)
         Me.TabPage2.ResumeLayout(False)
         Me.TabControl4.ResumeLayout(False)
@@ -2236,6 +2309,8 @@ Partial Class frmMain
         Me.GroupBox1.ResumeLayout(False)
         Me.GroupBox1.PerformLayout()
         Me.TabPage11.ResumeLayout(False)
+        Me.GroupBox39.ResumeLayout(False)
+        Me.GroupBox39.PerformLayout()
         Me.GroupBox38.ResumeLayout(False)
         Me.GroupBox38.PerformLayout()
         Me.GroupBox37.ResumeLayout(False)
@@ -2482,5 +2557,11 @@ Partial Class frmMain
     Friend WithEvents Timer1 As System.Windows.Forms.Timer
     Friend WithEvents TextBox3 As System.Windows.Forms.TextBox
     Friend WithEvents Timer2 As System.Windows.Forms.Timer
+    Friend WithEvents GroupBox39 As System.Windows.Forms.GroupBox
+    Friend WithEvents Label70 As System.Windows.Forms.Label
+    Friend WithEvents ProgressBar45 As System.Windows.Forms.ProgressBar
+    Friend WithEvents Label72 As System.Windows.Forms.Label
+    Friend WithEvents Label71 As System.Windows.Forms.Label
+    Friend WithEvents Button4 As System.Windows.Forms.Button
 
 End Class

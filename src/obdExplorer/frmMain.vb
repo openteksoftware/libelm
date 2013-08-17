@@ -87,6 +87,16 @@ Public Class frmMain
         Select Case TabControl1.SelectedIndex
             Case 0
                 lSensorPage = 0
+                Select Case TabControl3.SelectedIndex
+                    Case 0 ' Main
+                        If Label72.Text = "..." Then
+                            If cELM.isConnected Then
+                                Label72.Text = cELM.getVehicleVIN()
+                            End If
+                        End If
+                    Case 1 ' DTC
+                    Case 2 ' Supported PID
+                End Select
             Case 1 ' Digital Guages
                 If Not SensorThread.IsAlive() Then
                     Try
@@ -132,7 +142,7 @@ Public Class frmMain
             TextBox2.Enabled = True
         End If
 
-        Me.Text = "" & lSensorPage & " - " & SensorThread.IsAlive
+        'Me.Text = "" & lSensorPage & " - " & SensorThread.IsAlive
 
         Select Case lSensorPage
             Case 0
@@ -172,7 +182,7 @@ Public Class frmMain
         cELM.Logger = cLog
 
         SensorThread = New Thread(AddressOf SensorUpdateThread)
-        'SensorThread.IsBackground = True
+        SensorThread.IsBackground = True
     End Sub
 
     Private Sub TextBox3_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TextBox3.TextChanged
@@ -194,6 +204,13 @@ Public Class frmMain
 
     Private Sub ChangeProgress(ByVal ProgressObject As ProgressBar, ByVal Progress As Integer)
         If ProgressObject.InvokeRequired Then
+            If Progress > ProgressObject.Maximum Then
+                Progress = ProgressObject.Maximum
+            End If
+
+            If Progress < ProgressObject.Minimum Then
+                Progress = ProgressObject.Minimum
+            End If
             ProgressObject.Invoke(Sub() ProgressObject.Value = Progress)
         End If
     End Sub
@@ -204,89 +221,129 @@ Public Class frmMain
 
         Select lSensorPage
             Case 1
-
                 ' Vehicle MPH
                 dTemp = cELM.getVehicleSpeed()
                 ChangeProgress(ProgressBar1, Int(dTemp))
-                ChangeText(Label1, FormatNumber(dTemp, 2) & "mph")
+                If cELM.MetricStandard Then
+                    ChangeText(Label1, FormatNumber(dTemp, 2) & "kph")
+                Else
+                    ChangeText(Label1, FormatNumber(dTemp, 2) & "mph")
+                End If
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
+
                 ' Engine Load
                 dTemp = cELM.getEngineLoad()
                 ChangeProgress(ProgressBar2, Int(dTemp))
                 ChangeText(Label2, FormatNumber(dTemp, 0) & "%")
 
-                ' Throttle Position
-                'ProgressBar3.Value = Int(dTemp)
-                'Label3.Text = FormatNumber(dTemp, 0) & "%"
+                Thread.Sleep(5)
 
-                Thread.Sleep(10)
+                ' Throttle Position
+                dTemp = cELM.getThrottlePosition()
+                ChangeProgress(ProgressBar3, Int(dTemp))
+                ChangeText(Label3, FormatNumber(dTemp, 0) & "%")
+
+                Thread.Sleep(5)
+
                 ' Coolant Temperature
                 dTemp = cELM.getCoolantTemperature()
                 ChangeProgress(ProgressBar4, Int(dTemp))
-                ChangeText(Label4, FormatNumber(dTemp, 2) & "F")
+                If cELM.MetricStandard Then
+                    ChangeText(Label4, FormatNumber(dTemp, 2) & "°C")
+                Else
+                    ChangeText(Label4, FormatNumber(dTemp, 2) & "°F")
+                End If
+
+                Thread.Sleep(5)
 
                 ' MAF Flow Rate
+                dTemp = cELM.getMAFFlowRate()
+                ChangeProgress(ProgressBar5, Int(dTemp))
+                ChangeText(Label5, FormatNumber(dTemp, 2) & "grams/sec")
 
-                'ProgressBar5.Value = Int(dTemp)
-                'Label5.Text = FormatNumber(dTemp, 2) & "grams/sec"
+                Thread.Sleep(5)
 
                 ' Timing Advancment
-                'ProgressBar6.Value = Int(dTemp)
-                'Label6.Text = FormatNumber(dTemp, 2) & ""
+                dTemp = cELM.getTimingAdvance()
+                ChangeProgress(ProgressBar6, Int(dTemp))
+                ChangeText(Label6, FormatNumber(dTemp, 2) & "°")
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
+
                 ' Fuel Pressure
                 dTemp = cELM.getFuelPressure()
                 ChangeProgress(ProgressBar7, Int(dTemp))
                 ChangeText(Label7, FormatNumber(dTemp, 2) & "kPa")
 
+                Thread.Sleep(5)
+
                 ' Intake AIR Temperature
-                'ProgressBar8.Value = Int(dTemp)
-                'Label8.Text = FormatNumber(dTemp, 2) & "F"
+                dTemp = cELM.getIntakeAirTemperature()
+                ChangeProgress(ProgressBar8, Int(dTemp))
+                If cELM.MetricStandard Then
+                    ChangeText(Label8, FormatNumber(dTemp, 2) & "°C")
+                Else
+                    ChangeText(Label8, FormatNumber(dTemp, 2) & "°F")
+                End If
+                Thread.Sleep(5)
 
-
-                Thread.Sleep(10)
                 ' Intake Manifold Pressure
                 dTemp = cELM.getIntakeManifoldPressure()
                 ChangeProgress(ProgressBar9, Int(dTemp))
                 ChangeText(Label9, FormatNumber(dTemp, 2) & "kPa")
 
-                ' Commanded EGR
-                'ProgressBar10.Value = Int(dTemp)
-                'Label10.Text = FormatNumber(dTemp, 2) & "%"
+                Thread.Sleep(5)
+
+                ' Engine RPM
+                dTemp = cELM.getEngineRPM()
+                ChangeProgress(ProgressBar12, Int(dTemp))
+                ChangeText(Label12, Int(dTemp) & "rpm")
+
+                Thread.Sleep(5)
 
                 ' EGR Error
-                'ProgressBar11.Value = Int(dTemp)
-                'Label11.Text = FormatNumber(dTemp, 2) & "%"
+                dTemp = cELM.getEGRError()
+                ChangeProgress(ProgressBar11, Int(dTemp))
+                ChangeText(Label11, FormatNumber(dTemp, 2) & "%")
 
-                ' Commanded EVAP Purge
-                'ProgressBar12.Value = Int(dTemp)
-                'Label12.Text = FormatNumber(dTemp, 2) & "%"
+                Thread.Sleep(5)
 
                 ' Fuel Tank Level
-                'ProgressBar13.Value = Int(dTemp)
-                'Label13.Text = FormatNumber(dTemp, 2) & "%"
+                dTemp = cELM.getFuelTankLevel()
+                ChangeText(Label13, FormatNumber(dTemp, 2) & "%")
+                ChangeProgress(ProgressBar13, Int(dTemp))
+
+                Thread.Sleep(5)
 
                 ' EVAP System Pressure
-                'ProgressBar14.Value = Int(dTemp)
-                'Label14.Text = FormatNumber(dTemp, 2) & "Pa"
+                dTemp = cELM.getEvapSystemVaporPressure()
+                ChangeProgress(ProgressBar14, Int(dTemp))
+                ChangeText(Label14, FormatNumber(dTemp, 2) & "Pa")
+
+                Thread.Sleep(5)
 
                 ' Barometric Pressure
-                'ProgressBar15.Value = Int(dTemp)
-                'Label15.Text = FormatNumber(dTemp, 2) & "kPa"
+                dTemp = cELM.getBarometricPressure()
+                ChangeProgress(ProgressBar15, Int(dTemp))
+                ChangeText(Label15, FormatNumber(dTemp, 2) & "kPa")
 
-                Thread.Sleep(10)
-            Case 2
+                Thread.Sleep(5)
+            Case 2 ' Page 2
 
                 ' Battery Voltage
                 dTemp = cELM.getBatteryVoltage()
                 ChangeProgress(ProgressBar16, Int(dTemp))
                 ChangeText(Label17, FormatNumber(dTemp, 2) & "V")
 
+                Thread.Sleep(5)
+
                 ' Control Module Voltage
-                'ProgressBar17.Value = Int(dTemp)
-                'Label17.Text = FormatNumber(dTemp, 2) & "V"
+                dTemp = cELM.getControlModuleVoltage()
+                ChangeProgress(ProgressBar17, Int(dTemp))
+                ChangeText(Label18, FormatNumber(dTemp, 3) & "V")
+
+                Thread.Sleep(5)
 
                 ' Accelerator Pedal Position D
                 'ProgressBar18.Value = Int(dTemp)
@@ -301,51 +358,70 @@ Public Class frmMain
                 'Label20.Text = FormatNumber(dTemp, 2) & "%"
 
                 ' Commanded Equivalence Ratio
-                'ProgressBar21.Value = Int(dTemp)
-                'Label21.Text = FormatNumber(dTemp, 2) & "%"
+                dTemp = cELM.getCommandedEquivalenceRatio()
+                ChangeProgress(ProgressBar21, Int(dTemp))
+                ChangeText(Label22, Int(dTemp))
+
+                Thread.Sleep(5)
 
                 ' Commanded Throttle Actuator
-                'ProgressBar22.Value = Int(dTemp)
-                'Label22.Text = FormatNumber(dTemp, 2) & "%"
+                dTemp = cELM.getCommandedThrottleActuator()
+                ChangeProgress(ProgressBar22, Int(dTemp))
+                ChangeText(Label23, FormatNumber(dTemp, 2) & "%")
+
+                Thread.Sleep(5)
 
                 ' Ethanol %
-                'ProgressBar23.Value = Int(dTemp)
-                'Label23.Text = FormatNumber(dTemp, 2) & "%"
+                dTemp = cELM.getEthanolFuel()
+                ChangeProgress(ProgressBar23, Int(dTemp))
+                ChangeText(Label24, FormatNumber(dTemp, 2) & "%")
+
+                Thread.Sleep(5)
 
                 ' Engine Oil Temperature
-                'ProgressBar24.Value = Int(dTemp)
-                'Label24.Text = FormatNumber(dTemp, 2) & "%"
-
-                Thread.Sleep(10)
+                dTemp = cELM.getEngineOilTemperature()
+                ChangeProgress(ProgressBar24, Int(dTemp))
+                If cELM.MetricStandard Then
+                    ChangeText(Label25, FormatNumber(dTemp, 2) & "°C")
+                Else
+                    ChangeText(Label25, FormatNumber(dTemp, 2) & "°F")
+                End If
+                Thread.Sleep(5)
 
                 ' Bank 1 Short Term Fuel Trim
                 dTemp = cELM.getShortTermFuelTrim(1)
                 ChangeProgress(ProgressBar41, Int(dTemp))
                 ChangeText(Label66, FormatNumber(dTemp, 2) & "%")
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 1 Long Term Fuel Trim
                 dTemp = cELM.getLongTermFuelTrim(1)
                 ChangeProgress(ProgressBar42, Int(dTemp))
                 ChangeText(Label67, FormatNumber(dTemp, 2) & "%")
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 2 Short Term Fuel Trim
                 dTemp = cELM.getShortTermFuelTrim(2)
                 ChangeProgress(ProgressBar43, Int(dTemp))
                 ChangeText(Label68, FormatNumber(dTemp, 2) & "%")
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 2 Long Term Fuel Trim
                 dTemp = cELM.getLongTermFuelTrim(2)
                 ChangeProgress(ProgressBar44, Int(dTemp))
                 ChangeText(Label69, FormatNumber(dTemp, 2) & "%")
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
+                ' Commanded EVAP Purge
+                dTemp = cELM.getCommandedEvaporativePurge()
+                ChangeProgress(ProgressBar45, Int(dTemp))
+                ChangeText(Label70, FormatNumber(dTemp, 2) & "%")
+
+                Thread.Sleep(5)
             Case 3 ' Oxygen Sensors
 
                 ' Bank 1 Sensor 1
@@ -353,7 +429,7 @@ Public Class frmMain
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar25, Int(dTemp) + 10)
                 End If
-                ChangeText(Label27, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label27, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -373,14 +449,14 @@ Public Class frmMain
                     ChangeText(Label29, "Rich")
                 End If
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 1 Sensor 2
                 dTemp = cELM.getOxygenSensorVoltage(1, 2)
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar27, Int(dTemp) + 10)
                 End If
-                ChangeText(Label32, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label32, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -400,14 +476,14 @@ Public Class frmMain
                     ChangeText(Label30, "Rich")
                 End If
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 1 Sensor 3
                 dTemp = cELM.getOxygenSensorVoltage(1, 3)
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar30, Int(dTemp) + 10)
                 End If
-                ChangeText(Label38, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label38, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -428,14 +504,14 @@ Public Class frmMain
                 End If
 
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 1 Sensor 4
                 dTemp = cELM.getOxygenSensorVoltage(1, 4)
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar32, Int(dTemp) + 10)
                 End If
-                ChangeText(Label43, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label43, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -455,14 +531,14 @@ Public Class frmMain
                     ChangeText(Label41, "Rich")
                 End If
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 2 Sensor 1
                 dTemp = cELM.getOxygenSensorVoltage(2, 1)
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar40, Int(dTemp) + 10)
                 End If
-                ChangeText(Label63, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label63, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -482,14 +558,14 @@ Public Class frmMain
                     ChangeText(Label61, "Rich")
                 End If
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 2 Sensor 2
                 dTemp = cELM.getOxygenSensorVoltage(2, 2)
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar38, Int(dTemp) + 10)
                 End If
-                ChangeText(Label58, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label58, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -509,14 +585,14 @@ Public Class frmMain
                     ChangeText(Label56, "Rich")
                 End If
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 2 Sensor 3
                 dTemp = cELM.getOxygenSensorVoltage(2, 3)
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar36, Int(dTemp) + 10)
                 End If
-                ChangeText(Label53, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label53, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -536,14 +612,14 @@ Public Class frmMain
                     ChangeText(Label51, "Rich")
                 End If
 
-                Thread.Sleep(10)
+                Thread.Sleep(5)
 
                 ' Bank 2 Sensor 4
                 dTemp = cELM.getOxygenSensorVoltage(2, 4)
                 If dTemp > 0 Then
                     ChangeProgress(ProgressBar34, Int(dTemp) + 10)
                 End If
-                ChangeText(Label48, FormatNumber(dTemp, 2) & "V")
+                ChangeText(Label48, FormatNumber(dTemp, 3) & "V")
 
                 Thread.Sleep(5)
 
@@ -584,5 +660,13 @@ Public Class frmMain
 
             End Try
         End If
+    End Sub
+
+    Private Sub AboutToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles AboutToolStripMenuItem.Click
+        cLog.Log("VIN NUmber: " & cELM.getVehicleVIN())
+    End Sub
+
+    Private Sub Button4_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button4.Click
+        MsgBox(cELM.getELMProtocol())
     End Sub
 End Class '3045524733

@@ -9,7 +9,7 @@ Imports System.Runtime.InteropServices
 ' Review the values of the assembly attributes
 
 <Assembly: AssemblyTitle("libelm")> 
-<Assembly: AssemblyDescription("ELM OBD Interface library")> 
+<Assembly: AssemblyDescription("ELM327 OBD Interface library")> 
 <Assembly: AssemblyCompany("OpenTek Software")> 
 <Assembly: AssemblyProduct("libelm")> 
 <Assembly: AssemblyCopyright("Copyright © 2013 OpenTek Software")> 
@@ -31,5 +31,5 @@ Imports System.Runtime.InteropServices
 ' by using the '*' as shown below:
 ' <Assembly: AssemblyVersion("1.0.*")> 
 
-<Assembly: AssemblyVersion("0.1.1.0")> 
+<Assembly: AssemblyVersion("0.1.2.0")> 
 <Assembly: AssemblyFileVersion("1.0.0.0")> 

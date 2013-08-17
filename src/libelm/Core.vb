@@ -2,17 +2,22 @@
 
 Namespace libelm
 
-    Public Class cELM327_New
+    Public Class Core
         Private bBuffer(1024) As Byte
         Private pPort As New System.IO.Ports.SerialPort
         Private sSerialPort As String = "COM4"
         Private lSerialBaud As Long = 38400
         Private This_Logger As cLogger
         Private bTransmissionECU As Boolean
+        Private UseMetricStandard As Boolean
+
         Private tSPIDs(0) As SupportedPID
 
         Private sELMModel As String = "Unknown"
         Private sProtocol As String = "Unknown"
+
+        Public Event RAWDataReceived(ByVal sData As String)
+        Public Event RAWDataSent(ByVal sData As String)
 
         Private Structure OBDPacket
             Dim Valid As Boolean
@@ -27,10 +32,19 @@ Namespace libelm
             Dim Supported As Boolean
         End Structure
 
+        Public Property MetricStandard() As Boolean
+            Get
+                Return UseMetricStandard
+            End Get
+            Set(ByVal bValue As Boolean)
+                UseMetricStandard = bValue
+            End Set
+        End Property
 
-        Public Function getlibelmVersion() As String
-            Return "libelm " & My.Application.Info.Version.Major & "." & My.Application.Info.Version.Minor & "." & My.Application.Info.Version.Revision
+        Public Function getLibraryVersion() As String
+            Return "libelm v" & My.Application.Info.Version.Major & "." & My.Application.Info.Version.Minor & "." & My.Application.Info.Version.Revision
         End Function
+
         ' *******************************************************************************************
         '       FUNCTION: createPacket()
         '      ARGUMENTS: {INTEGER}
@@ -51,6 +65,12 @@ Namespace libelm
             Return tPacket
         End Function
 
+        Public Sub sendRAWData(ByVal sData As String)
+            Dim sTemp As String
+
+            sTemp = sendATCommand(sData)
+        End Sub
+
         ' *******************************************************************************************
         '       FUNCTION: requestPacket()
         '      ARGUMENTS: {STRING}
@@ -68,8 +88,6 @@ Namespace libelm
             Dim sSplit() As String
             lFileHandle = FreeFile()
 
-            FileOpen(lFileHandle, "C:\Users\Ian\Desktop\OBDSim\OBDLog.txt", OpenMode.Append)
-
             sSplit = Split(sPID, " ")
 
             tPacket = createPacket(UBound(sSplit))
@@ -82,7 +100,7 @@ Namespace libelm
             Try
                 pPort.WriteTimeout = 1000
                 pPort.Write(sPID + vbCr)
-                WriteLine(lFileHandle, sPID)
+                RaiseEvent RAWDataSent(sPID)
             Catch ex As TimeoutException
                 This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
                 Return tPacket
@@ -102,12 +120,16 @@ Namespace libelm
                         bContinue = False
                     End If
                 End While
-                WriteLine(lFileHandle, sReturnVal)
+                This_Logger.Log("** -> " & sReturnVal)
             Catch ex As Exception
                 This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
                 Return tPacket
             End Try
-            FileClose(lFileHandle)
+
+            ' Remove unneeded stuff
+            sReturnVal = sReturnVal.Replace(vbCr, "")
+            sReturnVal = sReturnVal.Replace(vbLf, "")
+            sReturnVal = sReturnVal.Replace(">", "")
 
             If sReturnVal.Contains("NO DATA") Then
                 Return tPacket
@@ -122,14 +144,12 @@ Namespace libelm
                 sReturnVal = sReturnVal.Replace("SEARCHING...", "")
             End If
 
-            ' Remove unneeded stuff
-            sReturnVal = sReturnVal.Replace(vbCr, "")
-            sReturnVal = sReturnVal.Replace(vbLf, "")
-            sReturnVal = sReturnVal.Replace(">", "")
+            RaiseEvent RAWDataReceived(sReturnVal)
 
-            ' VIN Number Fix
+
+            ' VIN Number Fix  Simple way, not very efficent............ Fix later?!?
             '"41 6B 10 014  0: 49 02 01 31 47 31  1: 41 4B 35 32 46 32 35  2: 37 35 36 32 32 32 37"
-            If sReturnVal.Contains(":") Then
+            If sReturnVal.Contains("49 02") Then
                 '"41 6B 10 49 02 01 31 47 31 41 4B 35 32 46 32 35 37 35 36 32 32 32 37"
                 sReturnVal = sReturnVal.Replace(" 0: ", "")
                 sReturnVal = sReturnVal.Replace(" 1: ", "")
@@ -140,13 +160,33 @@ Namespace libelm
                 sReturnVal = sReturnVal.Replace("014 ", "")
             End If
 
+
+            '-> 7E8 10 14 49 02 01 31 47 31             '-> 7E8 21 5A 54 35 38 46 36 37             '-> 7E8 22 46 32 36 34 39 38 38 
+
+            '-> 10 14 49 02 01 31 47 31             '-> 21 5A 54 35 38 46 36 37             '-> 22 46 32 36 34 39 38 38 
+
+            ' Malibu Fix
+            If sReturnVal.Contains("7E8") Then
+                sReturnVal = sReturnVal.Replace("7E8 ", "")
+            End If
+
             sReturnVal = sReturnVal.Trim()
             '"41 6B 10 41 00 BF 9F B9 90 05"
 
+            If sReturnVal = "" Then
+                Return tPacket
+            End If
+
             sSplit = Split(sReturnVal, " ")
+
             Dim bResponse(0 To UBound(sSplit)) As Byte
             For lIndex As Integer = 0 To UBound(sSplit)
-                bResponse(lIndex) = ("&H" & sSplit(lIndex))
+                Try
+                    bResponse(lIndex) = ("&H" & sSplit(lIndex))
+                Catch
+                    This_Logger.Log("Invalid Packet Recived: " & sReturnVal)
+                    Return tPacket
+                End Try
             Next
 
             ' We need to fill the packet
@@ -161,8 +201,8 @@ Namespace libelm
             Next lIndex
 
             ' Check to see if Packet is Valid
-            If bResponse(3) = &H40 + tPacket.PID(0) Then
-                If bResponse(4) = tPacket.PID(1) Then
+            If bResponse(3) = &H40 + tPacket.PID(0) Or bResponse(4) = &H40 + tPacket.PID(0) Then
+                If bResponse(4) = tPacket.PID(1) Or bResponse(5) = tPacket.PID(1) Then
                     tPacket.Valid = True
                 Else
                     This_Logger.Log("Invalid Packet!")
@@ -189,8 +229,8 @@ Namespace libelm
 
             Try
                 pPort.WriteTimeout = 1000
-                pPort.Write("DPN" + vbCr)
-                This_Logger.Log("DPN", cLogger.LogType.SERIAL)
+                pPort.Write("ATDPN" + vbCr)
+                This_Logger.Log("ATDPN", cLogger.LogType.SERIAL)
             Catch ex As TimeoutException
                 This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
                 Return False
@@ -224,29 +264,29 @@ Namespace libelm
             Select Case sReturnVal
                 Case "0"
                     Return "Automatic"
-                Case "1"
+                Case "1", "A1"
                     Return "SAE J1850 PWM (41.6 Kbaud)"
-                Case "2"
+                Case "2", "A2"
                     Return "SAE J1850 VPM (10.4 Kbaud)"
-                Case "3"
+                Case "3", "A3"
                     Return "ISO 9141-2 (5 baud init, 10.4 Kbaud)"
-                Case "4"
+                Case "4", "A4"
                     Return "ISO 14230-4 KWP (5 baud init, 10.4 Kbaud)"
-                Case "5"
+                Case "5", "A5"
                     Return "ISO 14230-4 KWP (fast init, 10.4 Kbaud)"
-                Case "6"
+                Case "6", "A6"
                     Return "ISO 15765-4 CAN (11 bit ID, 500 Kbaud)"
-                Case "7"
+                Case "7", "A7"
                     Return "ISO 15765-4 CAN (29 bit ID, 500 Kbaud)"
-                Case "8"
+                Case "8", "A8"
                     Return "ISO 15765-4 CAN (11 bit ID, 250 Kbaud)"
-                Case "9"
+                Case "9", "A9"
                     Return "ISO 15765-4 CAN (29 bit ID, 250 Kbaud)"
-                Case "A"
+                Case "A", "AA"
                     Return "SAE J1939 CAN (29 bit ID, 250* Kbaud)"
-                Case "B"
+                Case "B", "AB"
                     Return "USER1 CAN (11* bit ID, 125* Kbaud)"
-                Case "C"
+                Case "C", "AC"
                     Return "USER2 CAN (11* bit ID, 50* kbaud)"
                 Case Else
                     Return "Unknown: " & sReturnVal
@@ -273,7 +313,6 @@ Namespace libelm
                         sResponse = sResponse.Replace(vbCr, " ")
                         sResponse = sResponse.Replace(vbLf, " ")
                         sResponse = sResponse.Replace(">", " ")
-                        sResponse = sResponse.Replace(vbCr, " ")
                         sResponse.Trim()
 
                         sELMModel = sResponse
@@ -311,7 +350,7 @@ Namespace libelm
         '         AUTHOR: Ian M. Thomas
         '  LAST MODIFIED: 8/9/2013
         ' *******************************************************************************************
-        Public Function formatHEX(ByVal bByte As Byte) As String
+        Private Function formatHEX(ByVal bByte As Byte) As String
             Dim sTemp As String
 
             sTemp = "00" & Hex(bByte)
@@ -405,56 +444,58 @@ Namespace libelm
 
             pPort.DiscardInBuffer()
             pPort.DiscardOutBuffer()
-            If (pPort.BytesToRead > 0) Then
-
-            End If
 
             If Not resetInterface() Then
                 This_Logger.Log("Failed to reset obd interface", cLogger.LogType.ERRMSG)
                 Return False
             End If
 
+            ' Protocol Reset
+            If Not SetOption("AT PC") Then
+                This_Logger.Log("Failed to reset Protocol", cLogger.LogType.ERRMSG)
+                Return False
+            End If
+
             ' Line Feed
-            If Not SetOption("ATL0") Then
+            If Not SetOption("AT L0") Then
                 This_Logger.Log("Failed to Set Line Feed", cLogger.LogType.ERRMSG)
                 Return False
             End If
 
             ' ECHO
-            If Not SetOption("ATE0") Then
+            If Not SetOption("AT E0") Then
                 This_Logger.Log("Failed to set Echo", cLogger.LogType.ERRMSG)
                 Return False
             End If
 
             ' SET PROTOCOL
-            If Not SetOption("ATSP0") Then
-                This_Logger.Log("Failed to set  Auto-Detect protocol", cLogger.LogType.ERRMSG)
+            'If Not SetOption("AT SP 0") Then
+            ' This_Logger.Log("Failed to set Auto-Detect protocol", cLogger.LogType.ERRMSG)
+            'Return False
+            'End If
+
+            ' Headers
+            If Not SetOption("AT H1") Then
+                This_Logger.Log("Failed to set Headers", cLogger.LogType.ERRMSG)
                 Return False
             End If
 
-            ' Headers
-            If Not SetOption("ATH1") Then
-                This_Logger.Log("Failed to set Headers", cLogger.LogType.ERRMSG)
-                Return False
+            ' Baud Rate Timeout
+            If Not SetOption("AT BRD FF") Then
+                This_Logger.Log("Failed to set Baudrate Timeout", cLogger.LogType.ERRMSG)
             End If
 
             ' Set Baud Rate to 115200
             If increaseBaudRate() Then
                 This_Logger.Log("Baud Rate is now 115200bps")
+            Else
+                This_Logger.Log("Failed to increase Baudrate!")
             End If
 
             pPort.DiscardInBuffer()
             pPort.DiscardOutBuffer()
 
-            Dim tPacket As OBDPacket
-
-            tPacket = requestPacket("01 00")
-            tPacket = requestPacket("01 20")
-            tPacket = requestPacket("01 40")
-            tPacket = requestPacket("01 60")
-            tPacket = requestPacket("01 80")
-            tPacket = requestPacket("01 A0")
-            tPacket = requestPacket("01 C0")
+            checkForPIDSupport()
 
             Return True
         End Function
@@ -475,13 +516,25 @@ Namespace libelm
 
             Dim sResponse As String
 
-            sResponse = sendATCommand("ATZ")
+            sResponse = sendATCommand("AT Z")
 
             If sResponse.Contains("ELM") Then
                 Return True
             Else
                 Return False
             End If
+        End Function
+
+        Public Function isIgnitionOn() As Boolean
+            Dim sResponse As String
+
+            sResponse = sendATCommand("AT IGN")
+
+            If sResponse.Contains("N") Then
+                Return True
+            End If
+
+            Return False
         End Function
 
         ' *******************************************************************************************
@@ -496,6 +549,18 @@ Namespace libelm
         Public Function checkECUConnection() As Boolean
             'AT PC - Resets Protocoll MUST ADD!!!!
 
+            Dim tPacket As OBDPacket
+
+            If Not pPort.IsOpen() Then
+                Return False
+            End If
+
+            tPacket = requestPacket("01 00")
+
+            If tPacket.Valid = False Then
+                Return False
+            End If
+
             Return True
         End Function
 
@@ -506,6 +571,7 @@ Namespace libelm
             Try
                 pPort.WriteTimeout = 1000
                 pPort.Write(sCommand + vbCr)
+                RaiseEvent RAWDataSent(sCommand)
                 This_Logger.Log(sCommand, cLogger.LogType.SERIAL)
             Catch ex As TimeoutException
                 This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
@@ -530,9 +596,11 @@ Namespace libelm
                 End While
             Catch ex As Exception
                 This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
+                RaiseEvent RAWDataReceived("** " & ex.Message & "**")
                 Return ""
             End Try
 
+            RaiseEvent RAWDataReceived(sReturnVal)
             Return sReturnVal
         End Function
 
@@ -549,6 +617,8 @@ Namespace libelm
             Try
                 If pPort.IsOpen = True Then
 
+                    ' Reset ELM Protocol
+                    sendATCommand("AT PC")
 
 
                     pPort.Close()
@@ -572,16 +642,37 @@ Namespace libelm
             pPort.DiscardOutBuffer()
             pPort.DiscardInBuffer()
 
-            Dim sResponse As String
+            Try
+                pPort.WriteTimeout = 1000
+                pPort.Write("AT BRD 26" + vbCr)
+            Catch ex As TimeoutException
+                This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
+                Return ""
+            Catch ex As Exception
+                This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
+                Return ""
+            End Try
 
-            sResponse = sendATCommand("AT BRD 23")
+            Dim bContinue As Boolean = True
+            Dim sReturnVal As String = ""
+            Dim count As Integer
 
-            sResponse = sResponse.Replace(vbCr, "")
-            sResponse = sResponse.Replace(vbLf, "")
-            sResponse = sResponse.Replace(">", "")
+            pPort.ReadTimeout = 75
+            Try
+                While (bContinue = True)
+                    count = pPort.Read(bBuffer, 0, 1024)
+                    sReturnVal += System.Text.Encoding.Default.GetString(bBuffer, 0, count)
+                    If (sReturnVal.Contains(">")) Then
+                        bContinue = False
+                    End If
+                End While
+            Catch ex As Exception
+                This_Logger.Log(ex.Message, cLogger.LogType.ERRMSG)
+                Return False
+            End Try
 
-            If sResponse.Contains("?") Then
-                ' Baud rate isnt supported
+            If sReturnVal.Contains("?") Then
+                ' Baud rate could not be increased
                 pPort.BaudRate = 38400
                 Return False
             End If
@@ -589,18 +680,16 @@ Namespace libelm
             ' Change the Port Baud Rate
             pPort.BaudRate = 115200
 
-
             ' Continue Reading 
 
-            Dim bContinue As Boolean = True
             Dim lCount As Integer
-            Dim sReturnVal As String = ""
             pPort.ReadTimeout = 5000
             Try
                 While (bContinue = True)
                     lCount = pPort.Read(bBuffer, 0, 1024)
                     sReturnVal += System.Text.Encoding.Default.GetString(bBuffer, 0, lCount)
-                    If (sReturnVal.Contains(">")) Then
+                    If (sReturnVal.Contains("ELM")) Then
+                        pPort.Write(vbCr)
                         bContinue = False
                     End If
                 End While
@@ -609,11 +698,9 @@ Namespace libelm
             End Try
 
             If sReturnVal.Contains("ELM") Then
-                pPort.Write(vbCr)
                 Return True
             End If
 
-            ' Baud Rate isnt supported
             pPort.BaudRate = 38400
             Return False
         End Function
@@ -660,6 +747,10 @@ Namespace libelm
             Dim sReturnVal As String
 
             sReturnVal = sendATCommand("AT RV")
+
+            If sReturnVal.Contains("NO DATA") Then
+                Return 0.0
+            End If
 
             If sReturnVal <> "" Then
                 sReturnVal = sReturnVal.Replace(">", "")
@@ -753,7 +844,10 @@ Namespace libelm
         ' *******************************************************************************************
         Public Function isConnected() As Boolean
             If pPort.IsOpen Then
-                Return True
+
+                If checkECUConnection() Then
+                    Return True
+                End If
             End If
 
             Return False
@@ -768,14 +862,18 @@ Namespace libelm
         '         AUTHOR: Ian M. Thomas
         '  LAST MODIFIED: 8/9/2013
         ' *******************************************************************************************
-        Public Function CelsiusToFahrenheit(ByVal dCelsius As Double) As Double
-            Return ((dCelsius * 9) / 5) + 32
+        Public Function MetricTemperatureConversion(ByVal dMetricValue As Double) As Double
+            If MetricStandard Then
+                Return dMetricValue
+            Else
+                Return ((dMetricValue * 9) / 5) + 32
+            End If
         End Function
 
         Public Sub checkForPIDSupport()
             Dim tPacket As OBDPacket
 
-            This_Logger.Log("Checking for Mode 1 PID Support...")
+            This_Logger.Log("Checking ECU for Supported PIDs...")
 
             This_Logger.Log("Requesting 0x00...")
             tPacket = requestPacket("01 00")
@@ -791,7 +889,6 @@ Namespace libelm
             Next lIndex
 
             '41 6B 10 41 00 BF 9F B9 90 05
-            This_Logger.Log("Checking ECU for PID's")
             Dim bFirstRun As Boolean = True
             Dim bBase As Integer
             Dim lSupported As Integer
@@ -819,8 +916,6 @@ Namespace libelm
 
 
                 If sBITArray.Substring(lIndex, 1) = "1" Then
-                    'This_Logger.Log("0x01 0x" & formatHEX(lIndex + 1))
-
                     'This means There is a Supported PID
 
                     lSupported = lSupported + 1
@@ -852,6 +947,43 @@ Namespace libelm
             Return bTransmissionECU
         End Function
 
+        Public Sub eraseCodes()
+            ' Send '04'
+            Dim tPacket As OBDPacket
+
+            tPacket = requestPacket("04")
+
+            If tPacket.Valid = False Then
+                This_Logger.Log("Error erasing DTC Codes!", cLogger.LogType.ERRMSG)
+                Return
+            End If
+
+            If tPacket.Data(0) = &H44 Then
+                This_Logger.Log("DTC Codes have been erased!")
+            Else
+                This_Logger.Log("Error erasing DTC Codes!", cLogger.LogType.ERRMSG)
+            End If
+        End Sub
+
+        Public Function getControlModuleVoltage() As Double
+            ' 01 42
+
+            ' ((A * 256)+B) / 1000 = Volts
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 42")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+
+            dTemp = ((tPacket.Data(0) * 256) + tPacket.Data(1)) / 1000
+
+            Return dTemp
+        End Function
+
         Public Function getCoolantTemperature() As Double
             Dim tPacket As OBDPacket
             Dim dTemp As Double
@@ -864,7 +996,141 @@ Namespace libelm
 
             dTemp = tPacket.Data(0) - 40
 
-            Return CelsiusToFahrenheit(dTemp)
+            Return MetricTemperatureConversion(dTemp)
+        End Function
+
+        Public Function getThrottlePosition() As Double
+            ' 01 11
+
+            ' (A*100)/255 = %
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 11")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(0) * 100) / 255
+
+            Return dTemp
+        End Function
+
+
+        Public Function getOxygenSensorVoltage(ByVal lBank As Integer, ByVal lSensor As Integer) As Double
+            ' Bank 1, Sensor 1 = 01 14
+            ' Bank 1, Sensor 2 = 01 15
+            ' Bank 1, Sensor 3 = 01 16
+            ' Bank 1, Sensor 4 = 01 17
+            ' Bank 2, Sensor 1 = 01 18
+            ' Bank 2, Sensor 2 = 01 19
+            ' Bank 2, Sensor 3 = 01 1A
+            ' Bank 2, Sensor 4 = 01 1B
+            Dim tPacket As OBDPacket
+            Select Case lBank
+                Case 1
+                    Select Case lSensor
+                        Case 1
+                            tPacket = requestPacket("01 14")
+                        Case 2
+                            tPacket = requestPacket("01 15")
+                        Case 3
+                            tPacket = requestPacket("01 16")
+                        Case 4
+                            tPacket = requestPacket("01 17")
+                    End Select
+                Case 2
+                    Select Case lSensor
+                        Case 1
+                            tPacket = requestPacket("01 18")
+                        Case 2
+                            tPacket = requestPacket("01 19")
+                        Case 3
+                            tPacket = requestPacket("01 1A")
+                        Case 4
+                            tPacket = requestPacket("01 1B")
+                    End Select
+            End Select
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            Dim dTemp As Double
+
+            dTemp = (tPacket.Data(0) / 200)
+            Return dTemp
+        End Function
+
+        Public Function getOxygenSensorFuelTrim(ByVal lBank As Integer, ByVal lSensor As Integer) As Double
+            ' Bank 1, Sensor 1 = 01 14
+            ' Bank 1, Sensor 2 = 01 15
+            ' Bank 1, Sensor 3 = 01 16
+            ' Bank 1, Sensor 4 = 01 17
+            ' Bank 2, Sensor 1 = 01 18
+            ' Bank 2, Sensor 2 = 01 19
+            ' Bank 2, Sensor 3 = 01 1A
+            ' Bank 2, Sensor 4 = 01 1B
+            Dim tPacket As OBDPacket
+            Select Case lBank
+                Case 1
+                    Select Case lSensor
+                        Case 1
+                            tPacket = requestPacket("01 14")
+                        Case 2
+                            tPacket = requestPacket("01 15")
+                        Case 3
+                            tPacket = requestPacket("01 16")
+                        Case 4
+                            tPacket = requestPacket("01 17")
+                    End Select
+                Case 2
+                    Select Case lSensor
+                        Case 1
+                            tPacket = requestPacket("01 18")
+                        Case 2
+                            tPacket = requestPacket("01 19")
+                        Case 3
+                            tPacket = requestPacket("01 1A")
+                        Case 4
+                            tPacket = requestPacket("01 1B")
+                    End Select
+            End Select
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            Dim dTemp As Double
+
+            If tPacket.Data(1) = 255 Then
+                ' Sensor isnt used for trim calculation
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(1) - 128) * 100 / 128
+
+            Return dTemp
+        End Function
+
+        Public Function getEngineOilTemperature() As Double
+            ' 01 5C
+
+            ' A - 40 = Celcius
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 5C")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+
+            dTemp = (tPacket.Data(0) - 40)
+
+            Return MetricTemperatureConversion(dTemp)
         End Function
 
         Public Function getVehicleVIN() As String
@@ -873,17 +1139,212 @@ Namespace libelm
             Dim sTemp As String = ""
 
             tPacket = requestPacket("09 02")
+
             If tPacket.Valid = False Then
-                Return "N/A"
+                Return "Not Available."
             End If
+
             ' We dont need to verify the VIN response it is rigged in processOBDResponse()
 
             For lIndex As Integer = 0 To UBound(tPacket.Data)
                 sTemp = sTemp & Chr(tPacket.Data(lIndex))
             Next lIndex
 
+            sTemp = sTemp.Trim()
+
             Return sTemp
         End Function
+
+        Public Function getTimingAdvance() As Double
+            ' 01 0E
+
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 0E")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(0) / 2) - 64
+
+            Return dTemp
+        End Function
+
+        Public Function getIntakeAirTemperature() As Double
+            ' 01 0F
+
+            ' A-40 = Celcius
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 0F")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(0) - 40)
+
+            Return MetricTemperatureConversion(dTemp)
+        End Function
+
+        Public Function getMAFFlowRate() As Double
+            ' 01 10
+
+            '((A*256)+B)/100 = grams/sec
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 10")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = ((tPacket.Data(0) * 256) + tPacket.Data(1)) / 100
+
+            Return dTemp
+        End Function
+
+        Public Function getCommandedThrottleActuator() As Double
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 4C")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(0) * 100) / 255
+
+            Return dTemp
+        End Function
+
+        Public Function getCommandedEquivalenceRatio() As Double
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 44")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = ((tPacket.Data(0) * 256) + tPacket.Data(1)) / 32768
+
+            Return dTemp
+        End Function
+
+        Public Function getEthanolFuel() As Double
+            ' 01 52
+
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 52")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(0) * 100) / 255
+
+            Return dTemp
+        End Function
+
+        Public Function getEvapSystemVaporPressure() As Double
+            ' 01 32
+
+            ' ((A*256)+B)/4 = Pa
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+            tPacket = requestPacket("01 32")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = ((tPacket.Data(0) * 256) + tPacket.Data(1)) / 4
+
+            Return dTemp
+        End Function
+
+        Public Function getCommandedEvaporativePurge() As Double
+            ' 01 2E
+
+            ' A * 100 / 255
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+
+            tPacket = requestPacket("01 2E")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(0) * 100) / 255
+
+            Return dTemp
+        End Function
+
+        Public Function getEGRError() As Double
+            ' 01 2D
+
+            ' (A-128) * 100 / 128 = %
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+
+            tPacket = requestPacket("01 2D")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = ((tPacket.Data(0) - 128) * 100) / 128
+
+            Return dTemp
+        End Function
+
+        Public Function getBarometricPressure() As Double
+            ' 01 33
+
+            ' A = kPa
+            Dim tPacket As OBDPacket
+
+            tPacket = requestPacket("01 33")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            Return tPacket.Data(0)
+        End Function
+
+        Public Function getFuelTankLevel() As Double
+            ' 01 2F
+
+            ' A * 100 / 255
+            Dim tPacket As OBDPacket
+            Dim dTemp As Double
+
+
+            tPacket = requestPacket("01 2F")
+
+            If tPacket.Valid = False Then
+                Return 0.0
+            End If
+
+            dTemp = (tPacket.Data(0) * 100) / 255
+
+            Return dTemp
+        End Function
+
 
         Public Function getEngineRPM() As Integer
             Dim tPacket As OBDPacket
@@ -904,17 +1365,17 @@ Namespace libelm
         Public Function getVehicleSpeed() As Double
             Dim tPacket As OBDPacket
 
-            Dim dTemp As Double
-
             tPacket = requestPacket("01 0D")
 
             If tPacket.Valid = False Then
                 Return 0.0
             End If
 
-            dTemp = tPacket.Data(0) * 0.621371
-
-            Return dTemp
+            If MetricStandard Then
+                Return tPacket.Data(0)
+            Else
+                Return tPacket.Data(0) * 0.621371
+            End If
         End Function
 
         Public Function getODBStandard() As String
@@ -999,6 +1460,7 @@ Namespace libelm
             If lBank = 1 Then
                 tPacket = requestPacket("01 07")
             Else
+                ' Bank 2
                 tPacket = requestPacket("01 09")
             End If
 
@@ -1010,7 +1472,7 @@ Namespace libelm
 
             Return dTemp
         End Function
-        
+
         Public Function getFuelPressure() As Double
             ' 01 0A
 
@@ -1022,7 +1484,7 @@ Namespace libelm
             If tPacket.Valid = False Then
                 Return 0.0
             End If
-            
+
             dTemp = (tPacket.Data(0) * 3)
 
             Return dTemp
@@ -1031,7 +1493,6 @@ Namespace libelm
         Public Function getIntakeManifoldPressure() As Double
             ' 01 0B
 
-            Dim bResponse() As Byte
             Dim tPacket As OBDPacket
 
             tPacket = requestPacket("01 0B")
